@@ -378,7 +378,6 @@ Khi gặp vấn đề:
 1. Kiểm tra logs của các service
 2. Tham khảo tài liệu Docker Swarm
 3. Kiểm tra issues trên repository GitHub
-4. Liên hệ: csenguyenminhphuc@example.com
 
 ## 🎯 Roadmap Phát Triển
 
