@@ -1,277 +1,397 @@
-# Student Management System - Docker Swarm Deployment
+# Hệ Thống Quản Lý Sinh Viên - Triển Khai Docker Swarm
 
-Este projeto implementa um sistema de gerenciamento de estudantes usando Flask, PostgreSQL e Docker Swarm com 2 réplicas.
+Dự án này triển khai một hệ thống quản lý sinh viên sử dụng Flask, PostgreSQL và Docker Swarm với 2 bản sao (replication).
 
-## 👨‍💻 Informações do Desenvolvedor
+## 👨‍💻 Thông Tin Nhà Phát Triển
 
-- **Nome:** Nguyễn Minh Phúc
-- **Profissão:** Estudante do 4º ano em Ciência da Computação  
-- **Foco:** DevSecOps
+- **Tên:** Nguyễn Minh Phúc
+- **Nghề nghiệp:** Sinh viên năm 4 ngành Khoa học Máy tính  
+- **Chuyên môn:** DevSecOps
 
-## 🏗️ Arquitetura do Sistema
+## 🏗️ Kiến Trúc Hệ Thống
 
-### Componentes Principais:
-- **Frontend:** HTML e CSS puro
-- **Backend:** Python Flask com APIs REST
-- **Banco de dados:** PostgreSQL
+### Các Thành Phần Chính:
+- **Frontend:** HTML và CSS thuần túy
+- **Backend:** Python Flask với API REST
+- **Cơ sở dữ liệu:** PostgreSQL
 - **Load Balancer:** Nginx
-- **Orquestração:** Docker Swarm
-- **Repositório de Imagens:** Docker Hub
+- **Điều phối:** Docker Swarm
+- **Kho lưu trữ Image:** Docker Hub
 
-### Funcionalidades:
-1. **Página inicial** - Apresentação pessoal
-2. **Sistema de autenticação** - Login para acesso administrativo
-3. **Gerenciamento de estudantes:**
-   - Visualizar lista de estudantes
-   - Adicionar novos estudantes
-   - Editar informações dos estudantes
-   - Excluir estudantes
+### Tính Năng:
+1. **Trang chủ** - Giới thiệu cá nhân
+2. **Hệ thống xác thực** - Đăng nhập để truy cập quản trị
+3. **Quản lý sinh viên:**
+   - Xem danh sách sinh viên
+   - Thêm sinh viên mới
+   - Chỉnh sửa thông tin sinh viên
+   - Xóa sinh viên
 
-### Campos dos Estudantes:
-- Código do Estudante (ID único)
-- Nome completo
-- Idade
-- Curso/Área de estudo
-- Ano de ingresso
-- GPA (Média de notas)
+### Trường Dữ Liệu Sinh Viên:
+- Mã Sinh Viên (ID duy nhất)
+- Họ và tên đầy đủ
+- Tuổi
+- Ngành học/Chuyên ngành
+- Năm nhập học
+- GPA (Điểm trung bình)
 
-## 🚀 Guia de Implantação
+## 🚀 Hướng Dẫn Triển Khai
 
-### Pré-requisitos:
+### Điều Kiện Tiên Quyết:
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Conta no Docker Hub
-- Sistema Linux/Ubuntu
+- Tài khoản Docker Hub
+- Hệ điều hành Linux/Ubuntu
 
-### 1. Preparação do Ambiente
+### 1. Chuẩn Bị Môi Trường
 
 ```bash
-# Clone ou baixe os arquivos do projeto
-git clone <seu-repositorio>
-cd student-management-system
+# Clone hoặc tải xuống các file của dự án
+git clone https://github.com/csenguyenminhphuc/vti-final-project.git
+cd vti-final-project
 
-# Copie o arquivo de configuração
+# Tạo file .env từ mẫu (nếu chưa có)
 cp .env.example .env
-
-# Edite o arquivo .env com suas credenciais
-nano .env
 ```
 
-### 2. Configuração das Credenciais
+### 2. Tạo và Cấu Hình File .env
 
-Edite o arquivo `.env` e atualize:
+Tạo file `.env` trong thư mục gốc của dự án với nội dung sau:
 
 ```env
-# Credenciais do Docker Hub
-DOCKER_HUB_USERNAME=seu_usuario_dockerhub
-DOCKER_HUB_TOKEN=seu_token_dockerhub
+# Cấu hình Cơ sở dữ liệu
+DB_HOST=database
+DB_NAME=students_db
+DB_USER=postgres
+DB_PASSWORD=MatKhauBaoMat123!
+DB_PORT=5432
+
+# Khóa bí mật Flask (QUAN TRỌNG: Thay đổi trong môi trường production)
+SECRET_KEY=khoa-bi-mat-cuc-ky-bao-mat-thay-doi-trong-production-2024
+FLASK_ENV=production
+
+# Thông tin đăng nhập Admin (QUAN TRỌNG: Thay đổi trong môi trường production)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+
+# Cấu hình Docker Hub (thay đổi thành thông tin của bạn)
+DOCKER_HUB_USERNAME=csenguyenminhphuc
+DOCKER_HUB_TOKEN=your_docker_hub_token_here
 IMAGE_NAME=student-management-system
 
-# Credenciais do Banco de Dados (altere para produção)
-DB_PASSWORD=SuaSenhaSegura123!
-SECRET_KEY=sua-chave-secreta-super-segura
+# Cấu hình Stack
+STACK_NAME=student-management
+REPLICAS=2
+PORT=5000
+WORKERS=4
 
-# Credenciais do Admin (altere para produção)
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=suaSenhaAdmin123!
+# Cấu hình Cloudflare (tùy chọn - để trống nếu không sử dụng)
+API_TOKEN=your_cloudflare_api_token
+ZONE_ID=your_cloudflare_zone_id
+RECORD_ID=your_cloudflare_record_id
+SUBDOMAIN=your-subdomain.your-domain.com
+PRIMARY_IP=your_primary_server_ip
+BACKUP_IP=your_backup_server_ip
 ```
 
-### 3. Desenvolvimento Local
+**⚠️ LƯU Ý QUAN TRỌNG:** 
+- Thay đổi tất cả các mật khẩu mặc định trước khi triển khai production
+- Tạo Docker Hub token tại: https://hub.docker.com/settings/security
+- Đảm bảo file `.env` không được commit vào Git (thêm vào `.gitignore`)
 
-Para testar localmente com Docker Compose:
+### 3. Phát Triển Cục Bộ
+
+Để chạy thử nghiệm trên máy local với Docker Compose:
 
 ```bash
-# Dar permissão aos scripts
-chmod +x *.sh
+# Khởi động môi trường phát triển
+docker-compose up -d
 
-# Iniciar ambiente de desenvolvimento
-./dev-start.sh
+# Kiểm tra trạng thái các container
+docker-compose ps
 
-# Parar ambiente de desenvolvimento
-./dev-stop.sh
+# Xem logs
+docker-compose logs -f
+
+# Dừng môi trường phát triển
+docker-compose down
 ```
 
-Acesse: http://localhost
+Truy cập ứng dụng tại: http://localhost
 
-### 4. Build e Push das Imagens
+### 4. Build và Push Images
+
+Trước khi triển khai Docker Swarm, bạn cần build và push images:
 
 ```bash
-# Construir e enviar imagens para Docker Hub
-./build-and-push.sh
+# Build image ứng dụng
+docker build -t $DOCKER_HUB_USERNAME/student-management-app:latest .
+
+# Build image database
+docker build -f Dockerfile.db -t $DOCKER_HUB_USERNAME/student-management-db:latest .
+
+# Build image nginx
+docker build -f Dockerfile.nginx -t $DOCKER_HUB_USERNAME/student-management-nginx:latest .
+
+# Đăng nhập Docker Hub
+docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_TOKEN
+
+# Push images lên Docker Hub
+docker push $DOCKER_HUB_USERNAME/student-management-app:latest
+docker push $DOCKER_HUB_USERNAME/student-management-db:latest
+docker push $DOCKER_HUB_USERNAME/student-management-nginx:latest
 ```
 
-### 5. Implantação com Docker Swarm
+### 5. Triển Khai với Docker Swarm
 
 ```bash
-# Implantar no Docker Swarm (2 réplicas)
-./deploy-swarm.sh
+# Khởi tạo Docker Swarm (nếu chưa có)
+docker swarm init
 
-# Remover implantação
-./remove-stack.sh
-```
+# Triển khai stack
+docker stack deploy -c docker-stack.yml student-management
 
-## 🔧 Estrutura do Projeto
-
-```
-├── app.py                  # Aplicação Flask principal
-├── requirements.txt        # Dependências Python
-├── templates/             # Templates HTML
-│   ├── base.html          # Template base
-│   ├── home.html          # Página inicial
-│   ├── login.html         # Página de login
-│   └── dashboard.html     # Dashboard de gerenciamento
-├── static/css/            # Arquivos CSS
-│   └── style.css          # Estilos principais
-├── Dockerfile             # Dockerfile da aplicação
-├── Dockerfile.db          # Dockerfile do PostgreSQL
-├── Dockerfile.nginx       # Dockerfile do Nginx
-├── docker-compose.yml     # Configuração para desenvolvimento
-├── docker-stack.yml       # Configuração para Docker Swarm
-├── nginx.conf             # Configuração do Nginx
-├── init-db.sql            # Scripts de inicialização do banco
-├── .env                   # Variáveis de ambiente
-├── .env.example           # Exemplo de configuração
-└── scripts/               # Scripts de implantação
-    ├── build-and-push.sh  # Build e push das imagens
-    ├── deploy-swarm.sh    # Implantação no Swarm
-    ├── dev-start.sh       # Iniciar desenvolvimento
-    ├── dev-stop.sh        # Parar desenvolvimento
-    └── remove-stack.sh    # Remover stack
-```
-
-## 🌐 URLs de Acesso
-
-### Desenvolvimento Local:
-- **Aplicação principal:** http://localhost
-- **Acesso direto Flask:** http://localhost:5000
-- **Banco de dados:** localhost:5432
-
-### Produção (Docker Swarm):
-- **Aplicação principal:** http://localhost (através do Nginx)
-- **Visualizador do Swarm:** http://localhost:8080
-
-## 🔐 Credenciais Padrão (ALTERE EM PRODUÇÃO!)
-
-```
-Usuário: admin
-Senha: admin123
-```
-
-## 📊 Monitoramento e Gerenciamento
-
-### Comandos Úteis do Docker Swarm:
-
-```bash
-# Ver status dos serviços
+# Kiểm tra trạng thái các service
 docker service ls
 
-# Ver detalhes do stack
+# Xem chi tiết stack
+docker stack ps student-management
+```
+
+## 🔧 Cấu Trúc Dự Án
+
+```
+├── app.py                     # Ứng dụng Flask chính
+├── python.py                  # File Python phụ trợ
+├── requirements.txt           # Các thư viện Python cần thiết
+├── templates/                 # Các template HTML
+│   ├── base.html             # Template cơ sở
+│   ├── home.html             # Trang chủ
+│   ├── login.html            # Trang đăng nhập
+│   └── dashboard.html        # Dashboard quản lý
+├── static/                   # Tài nguyên tĩnh
+│   └── css/
+│       └── style.css         # File CSS chính
+├── Dockerfile                # Dockerfile cho ứng dụng
+├── Dockerfile.db             # Dockerfile cho PostgreSQL
+├── Dockerfile.nginx          # Dockerfile cho Nginx
+├── docker-compose.yml        # Cấu hình cho development
+├── docker-stack.yml          # Cấu hình cho Docker Swarm
+├── docker-stack-local.yml    # Cấu hình Swarm local
+├── docker-stack-simple.yml   # Cấu hình Swarm đơn giản
+├── docker-stack-fixed.yml    # Cấu hình Swarm đã sửa lỗi
+├── nginx.conf                # Cấu hình Nginx
+├── init-db.sql              # Scripts khởi tạo cơ sở dữ liệu
+├── .env                     # Biến môi trường (tạo từ mẫu bên dưới)
+├── huongdan.txt             # Hướng dẫn bằng tiếng Việt
+└── README.md                # File hướng dẫn này
+```
+
+## 🌐 URL Truy Cập
+
+### Môi Trường Phát Triển:
+- **Ứng dụng chính:** http://localhost (qua Nginx)
+- **Truy cập trực tiếp Flask:** http://localhost:5000
+- **Cơ sở dữ liệu:** localhost:5432
+
+### Môi Trường Production (Docker Swarm):
+- **Ứng dụng chính:** http://localhost (qua Nginx Load Balancer)
+- **Visualizer Swarm:** http://localhost:8080 (nếu được cấu hình)
+
+## 🔐 Thông Tin Đăng Nhập Mặc Định
+
+⚠️ **QUAN TRỌNG: Thay đổi trong môi trường production!**
+
+```
+Tên đăng nhập: admin
+Mật khẩu: admin123
+```
+
+## 📊 Giám Sát và Quản Lý
+
+### Các Lệnh Docker Swarm Hữu Ích:
+
+```bash
+# Xem trạng thái các service
+docker service ls
+
+# Xem chi tiết stack
 docker stack ps student-management
 
-# Ver logs do serviço
+# Xem logs của service
 docker service logs student-management_webapp
 
-# Escalar serviço (alterar número de réplicas)
+# Tăng/giảm số lượng replica
 docker service scale student-management_webapp=4
 
-# Atualizar serviço
+# Cập nhật service
 docker service update student-management_webapp
 
-# Ver nós do Swarm
+# Xem các node trong Swarm
 docker node ls
 
-# Ver visualizador do Swarm
-# Acesse: http://localhost:8080
+# Xóa toàn bộ stack
+docker stack rm student-management
 ```
 
-### Comandos de Debug:
+### Các Lệnh Debug:
 
 ```bash
-# Executar bash dentro do container
+# Chạy bash bên trong container
 docker exec -it $(docker ps -q -f name=webapp) bash
 
-# Ver logs em tempo real
+# Xem logs real-time
 docker service logs -f student-management_webapp
 
-# Verificar saúde dos serviços
+# Kiểm tra tình trạng service
 docker service inspect student-management_webapp
+
+# Xem tài nguyên sử dụng
+docker stats
+
+# Kiểm tra network
+docker network ls
 ```
 
-## 🛡️ Considerações de Segurança
+## 🛡️ Bảo Mật và Khuyến Nghị
 
-### Para Produção:
-1. **Altere todas as senhas padrão**
-2. **Use HTTPS com certificados SSL**
-3. **Configure firewall apropriado**
-4. **Use secrets do Docker Swarm para credenciais**
-5. **Implemente backup regular do banco de dados**
-6. **Monitor logs e métricas**
+### Cho Môi Trường Production:
+1. **Thay đổi tất cả mật khẩu mặc định**
+2. **Sử dụng HTTPS với chứng chỉ SSL**
+3. **Cấu hình tường lửa phù hợp**
+4. **Sử dụng Docker Swarm secrets cho thông tin nhạy cảm**
+5. **Triển khai backup thường xuyên cho cơ sở dữ liệu**
+6. **Giám sát logs và metrics**
+7. **Cập nhật thường xuyên các image Docker**
 
-### Implementação de HTTPS:
+### Triển Khai HTTPS:
 
 ```bash
-# Gerar certificados SSL
+# Tạo chứng chỉ SSL tự ký (chỉ cho development)
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout nginx-selfsigned.key -out nginx-selfsigned.crt
+    -keyout nginx-selfsigned.key \
+    -out nginx-selfsigned.crt \
+    -subj "/C=VN/ST=HCM/L=HoChiMinh/O=Organization/CN=localhost"
 
-# Atualizar nginx.conf para usar SSL
-# Adicionar certificados ao container Nginx
+# Cập nhật nginx.conf để sử dụng SSL
+# Thêm chứng chỉ vào container Nginx
 ```
 
-## 🔄 Pipeline CI/CD Sugerido
+## 🔄 Quy Trình CI/CD Đề Xuất
 
-1. **Development:** Push para branch develop
-2. **Build:** Automatizar build com GitHub Actions
-3. **Test:** Executar testes automatizados
-4. **Deploy to Staging:** Deploy automático para ambiente de teste
-5. **Production:** Deploy manual após aprovação
+```yaml
+# Ví dụ GitHub Actions workflow
+name: Deploy to Production
+on:
+  push:
+    branches: [main]
+  
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Build and push Docker images
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/student-management-app:${{ github.sha }} .
+          docker push ${{ secrets.DOCKER_USERNAME }}/student-management-app:${{ github.sha }}
+      
+      - name: Deploy to Docker Swarm
+        run: |
+          docker stack deploy -c docker-stack.yml student-management
+```
 
-## 📈 Escalabilidade
+## 📈 Mở Rộng Hệ Thống
 
-### Escalar Horizontalmente:
+### Mở Rộng Theo Chiều Ngang:
 ```bash
-# Aumentar réplicas da aplicação
+# Tăng số replica của ứng dụng
 docker service scale student-management_webapp=5
 
-# Adicionar nós ao Swarm
+# Thêm node vào Swarm cluster
 docker swarm join --token <token> <manager-ip>:2377
 ```
 
-### Escalar Verticalmente:
-- Aumentar recursos nos arquivos de configuração
-- Atualizar limites de CPU e memória nos services
+### Mở Rộng Theo Chiều Dọc:
+- Tăng tài nguyên CPU/Memory trong file cấu hình
+- Cập nhật giới hạn tài nguyên trong docker-stack.yml
 
-## 🚨 Troubleshooting
+## 🚨 Xử Lý Sự Cố
 
-### Problemas Comuns:
+### Các Vấn Đề Thường Gặp:
 
-1. **Serviço não inicia:**
+1. **Service không khởi động được:**
    ```bash
+   # Kiểm tra logs chi tiết
    docker service logs student-management_webapp
+   
+   # Kiểm tra trạng thái service
+   docker service ps student-management_webapp --no-trunc
    ```
 
-2. **Banco de dados não conecta:**
-   - Verificar credenciais no .env
-   - Verificar se o serviço database está rodando
+2. **Không kết nối được cơ sở dữ liệu:**
+   - Kiểm tra thông tin trong file `.env`
+   - Đảm bảo service database đang chạy
+   - Kiểm tra network connectivity
 
-3. **Imagens não encontradas:**
-   - Verificar se as imagens foram enviadas para Docker Hub
-   - Verificar credenciais do Docker Hub
+3. **Không tìm thấy Docker images:**
+   - Đảm bảo images đã được push lên Docker Hub
+   - Kiểm tra thông tin đăng nhập Docker Hub
+   - Verify image tags trong docker-stack.yml
 
-4. **Portas em uso:**
-   - Parar outros serviços usando as mesmas portas
-   - Alterar portas no docker-stack.yml
+4. **Cổng đang được sử dụng:**
+   - Dừng các service khác sử dụng cùng cổng
+   - Thay đổi cổng trong file cấu hình
 
-## 📞 Suporte
+5. **Lỗi permission denied:**
+   ```bash
+   # Cấp quyền thực thi cho scripts
+   chmod +x *.sh
+   
+   # Kiểm tra quyền Docker
+   sudo usermod -aG docker $USER
+   newgrp docker
+   ```
 
-Para problemas ou dúvidas:
-- Verificar logs dos serviços
-- Consultar documentação do Docker Swarm
-- Verificar issues no repositório
+## � Kiểm Tra Hệ Thống
 
-## 📄 Licença
+### Health Check:
+```bash
+# Kiểm tra tình trạng containers
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-Este projeto é para fins educacionais e demonstração de DevSecOps com Docker Swarm.
+# Test kết nối database
+docker exec -it $(docker ps -q -f name=database) psql -U postgres -d students_db -c "SELECT version();"
+
+# Test ứng dụng web
+curl -f http://localhost/ || echo "Web app không phản hồi"
+
+# Kiểm tra sử dụng tài nguyên
+docker system df
+```
+
+## 📞 Hỗ Trợ và Liên Hệ
+
+Khi gặp vấn đề:
+1. Kiểm tra logs của các service
+2. Tham khảo tài liệu Docker Swarm
+3. Kiểm tra issues trên repository GitHub
+4. Liên hệ: csenguyenminhphuc@example.com
+
+## 🎯 Roadmap Phát Triển
+
+- [ ] Thêm tính năng import/export dữ liệu
+- [ ] Triển khai monitoring với Prometheus/Grafana
+- [ ] Thêm unit tests và integration tests
+- [ ] Cải thiện UI/UX với framework hiện đại
+- [ ] Thêm API documentation với Swagger
+- [ ] Triển khai multi-environment (dev, staging, prod)
+
+## 📄 Giấy Phép
+
+Dự án này được tạo ra cho mục đích giáo dục và demo DevSecOps với Docker Swarm.
 
 ---
-**Desenvolvido por Nguyễn Minh Phúc** - Estudante de Ciência da Computação focado em DevSecOps
+**Phát triển bởi Nguyễn Minh Phúc** - Sinh viên Khoa học Máy tính chuyên về DevSecOps
