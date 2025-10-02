@@ -355,7 +355,7 @@ docker swarm join --token <token> <manager-ip>:2377
    newgrp docker
    ```
 
-## � Kiểm Tra Hệ Thống
+## 🔧 Kiểm Tra Hệ Thống
 
 ### Health Check:
 ```bash
