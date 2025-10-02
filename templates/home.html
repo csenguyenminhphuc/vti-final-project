@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Giới thiệu - Nguyễn Minh Phúc{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero-section">
+        <div class="profile-card">
+            <div class="profile-avatar">
+                <div class="avatar-circle">NMP</div>
+            </div>
+            <div class="profile-info">
+                <h1 class="profile-name">Nguyễn Minh Phúc</h1>
+                <h2 class="profile-title">Sinh viên năm thứ 4</h2>
+                <h3 class="profile-major">Chuyên ngành: Khoa học Máy tính</h3>
+                <p class="profile-passion">Đang theo đuổi DevSecOps</p>
+                
+                <div class="profile-description">
+                    <p>Xin chào! Tôi là Nguyễn Minh Phúc, hiện đang là sinh viên năm thứ 4 chuyên ngành Khoa học Máy tính. 
+                    Tôi đang tập trung vào lĩnh vực DevSecOps, một lĩnh vực kết hợp giữa phát triển phần mềm (Development), 
+                    vận hành hệ thống (Operations) và bảo mật (Security).</p>
+                    
+                    <p>Với niềm đam mê về công nghệ và an ninh mạng, tôi luôn tìm hiểu và áp dụng các công nghệ mới nhất 
+                    để xây dựng những hệ thống ổn định, bảo mật và có thể mở rộng.</p>
+                </div>
+
+                <div class="skills-section">
+                    <h3>Kỹ năng chính:</h3>
+                    <div class="skills-grid">
+                        <div class="skill-item">Docker & Container</div>
+                        <div class="skill-item">Python & Flask</div>
+                        <div class="skill-item">PostgreSQL</div>
+                        <div class="skill-item">DevSecOps</div>
+                        <div class="skill-item">CI/CD</div>
+                        <div class="skill-item">Security</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">Truy cập Hệ thống Quản lý</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

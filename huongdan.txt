@@ -1,0 +1,397 @@
+# HƯỚNG DẪN CHẠY HỆ THỐNG QUẢN LÝ SINH VIÊN BẰNG TAY
+# =====================================================
+# Hệ thống: Student Management System với Docker Swarm (2 replicas)
+# Phát triển bởi: Nguyễn Minh Phúc - Sinh viên K4 Khoa học Máy tính
+# Chuyên nghiệp: DevSecOps
+
+## MỤC LỤC
+1. CHUẨN BỊ MÔI TRƯỜNG
+2. CHẠY PHÁT TRIỂN LOCAL
+3. BUILD VÀ PUSH IMAGE LÊN DOCKER HUB
+4. TRIỂN KHAI VỚI DOCKER SWARM
+5. KIỂM TRA VÀ QUẢN LÝ HỆ THỐNG
+
+# =====================================================
+# 1. CHUẨN BỊ MÔI TRƯỜNG
+# =====================================================
+
+## 1.1 Kiểm tra Docker
+sudo docker --version
+sudo docker-compose --version
+
+## 1.2 Tạo file .env từ template
+cp .env.example .env
+
+## 1.3 Chỉnh sửa file .env (QUAN TRỌNG!)
+nano .env
+
+# Nội dung file .env cần cập nhật:
+# ---------------------------------
+DB_HOST=database
+DB_NAME=students_db
+DB_USER=postgres
+DB_PASSWORD=SecurePassword123!
+DB_PORT=5432
+SECRET_KEY=your-super-secure-secret-key-change-in-production-2024
+FLASK_ENV=production
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+DOCKER_HUB_USERNAME=your_dockerhub_username
+DOCKER_HUB_TOKEN=your_dockerhub_token
+IMAGE_NAME=student-management-system
+STACK_NAME=student-management
+REPLICAS=2
+PORT=5000
+WORKERS=4
+
+# LƯU Ý: Thay thế your_dockerhub_username và your_dockerhub_token bằng thông tin thật!
+
+# =====================================================
+# 2. CHẠY PHÁT TRIỂN LOCAL (DEVELOPMENT)
+# =====================================================
+
+## 2.1 Dọn dẹp môi trường (nếu có)
+sudo docker compose down -v
+sudo docker system prune -f
+
+## 2.2 Build và chạy development environment
+sudo docker compose up --build -d
+
+## 2.3 Kiểm tra trạng thái services
+sudo docker compose ps
+
+## 2.4 Xem logs nếu có lỗi
+sudo docker compose logs database
+sudo docker compose logs webapp
+sudo docker compose logs nginx
+
+## 2.5 Kiểm tra ứng dụng
+# Truy cập: http://localhost
+# Tài khoản: admin / admin123
+
+## 2.6 Dừng development environment
+sudo docker compose down
+
+# =====================================================
+# 3. BUILD VÀ PUSH IMAGE LÊN DOCKER HUB
+# =====================================================
+
+## 3.1 Load biến môi trường
+source .env
+
+## 3.2 Đăng nhập Docker Hub
+echo "$DOCKER_HUB_TOKEN" | sudo docker login --username "$DOCKER_HUB_USERNAME" --password-stdin
+# Hoặc đăng nhập thủ công:
+# sudo docker login --username your_username
+
+## 3.3 Build các Docker images (LƯU Ý: phải load .env trước mỗi lệnh)
+
+
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest -f Dockerfile .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest -f Dockerfile.db .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest -f Dockerfile.nginx .
+
+## 3.4 Tag images với version (tùy chọn)
+VERSION=$(date +%Y%m%d_%H%M%S)
+sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:$VERSION
+sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:$VERSION
+sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:$VERSION
+
+## 3.5 Push images lên Docker Hub (LƯU Ý: phải load .env trước mỗi lệnh)
+
+# Push Flask App
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:$VERSION
+
+# Push Database
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest  
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:$VERSION
+
+# Push Nginx
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:$VERSION
+
+## 3.6 Kiểm tra images đã push
+sudo docker image ls | grep $DOCKER_HUB_USERNAME
+
+# =====================================================
+# 4. TRIỂN KHAI VỚI DOCKER SWARM (2 REPLICAS)
+# =====================================================
+
+## 4.1 Khởi tạo Docker Swarm (nếu chưa có)
+sudo docker swarm init
+
+## 4.2 Kiểm tra trạng thái Swarm
+sudo docker info | grep "Swarm:"
+sudo docker node ls
+
+## 4.3 Tạo overlay network
+sudo docker network create --driver overlay --attachable app-network
+
+## 4.4 Load biến môi trường cho stack
+source .env
+
+## 4.5 Deploy stack với 2 replicas (sử dụng file fixed)
+sudo docker stack deploy -c docker-stack-fixed.yml student-management
+
+## 4.6 Chờ services khởi động
+sleep 30
+
+## 4.7 Kiểm tra stack deployment
+sudo docker stack services $STACK_NAME
+sudo docker stack ps $STACK_NAME
+
+# =====================================================
+# 5. KIỂM TRA VÀ QUẢN LÝ HỆ THỐNG
+# =====================================================
+
+## 5.1 Kiểm tra trạng thái services
+sudo docker service ls
+sudo docker service ps ${STACK_NAME}_webapp
+sudo docker service ps ${STACK_NAME}_database
+sudo docker service ps ${STACK_NAME}_nginx
+
+## 5.2 Xem logs của services
+sudo docker service logs ${STACK_NAME}_webapp
+sudo docker service logs ${STACK_NAME}_database
+sudo docker service logs ${STACK_NAME}_nginx
+
+## 5.3 Kiểm tra health của services
+sudo docker service inspect ${STACK_NAME}_webapp --format='{{.UpdateStatus}}'
+sudo docker service inspect ${STACK_NAME}_database --format='{{.UpdateStatus}}'
+
+## 5.4 Truy cập ứng dụng
+# Ứng dụng chính: http://localhost
+# Swarm Visualizer: http://localhost:8080
+# Tài khoản: admin / admin123
+
+## 5.5 Scale services (tăng/giảm replicas)
+# Tăng webapp lên 4 replicas
+sudo docker service scale ${STACK_NAME}_webapp=4
+
+# Giảm về 2 replicas
+sudo docker service scale ${STACK_NAME}_webapp=2
+
+## 5.6 Update service (rolling update)
+sudo docker service update ${STACK_NAME}_webapp
+
+## 5.7 Kiểm tra port đang sử dụng
+sudo netstat -tlnp | grep -E ":80|:5000|:5432|:8080"
+
+## 5.8 Kiểm tra resource usage
+sudo docker stats
+
+# =====================================================
+# 6. CÁC LỆNH QUẢN LÝ KHÁC
+# =====================================================
+
+## 6.1 Backup database (từ container)
+sudo docker exec -it $(sudo docker ps -q -f name=${STACK_NAME}_database) pg_dump -U postgres students_db > backup.sql
+
+## 6.2 Restore database
+sudo docker exec -i $(sudo docker ps -q -f name=${STACK_NAME}_database) psql -U postgres students_db < backup.sql
+
+## 6.3 Truy cập shell trong container
+# Webapp container
+sudo docker exec -it $(sudo docker ps -q -f name=${STACK_NAME}_webapp) bash
+
+# Database container  
+sudo docker exec -it $(sudo docker ps -q -f name=${STACK_NAME}_database) psql -U postgres -d students_db
+
+## 6.4 Xóa stack (cleanup)
+sudo docker stack rm $STACK_NAME
+
+## 6.5 Dọn dẹp hoàn toàn
+sudo docker system prune -a -f
+sudo docker volume prune -f
+sudo docker network prune -f
+
+## 6.6 Rời khỏi swarm mode
+sudo docker swarm leave --force
+
+# =====================================================
+# 7. TROUBLESHOOTING
+# =====================================================
+
+## 7.1 Service không khởi động được
+# Kiểm tra logs
+sudo docker service logs ${STACK_NAME}_webapp -f
+
+# Kiểm tra events
+sudo docker events &
+
+## 7.2 Database connection failed
+# Kiểm tra database service
+sudo docker service inspect ${STACK_NAME}_database
+
+# Kiểm tra network connectivity
+sudo docker exec $(sudo docker ps -q -f name=${STACK_NAME}_webapp) ping database
+
+## 7.3 Images không tải được
+# Kiểm tra Docker Hub credentials
+sudo docker login
+
+# Pull images thủ công
+sudo docker pull $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest
+
+## 7.4 Port conflicts
+# Kiểm tra ports đang sử dụng
+sudo lsof -i :80
+sudo lsof -i :5432
+
+# Kill process nếu cần
+sudo kill -9 <PID>
+
+## 7.5 Swarm node issues
+# Kiểm tra node health
+sudo docker node ls
+sudo docker node inspect self
+
+# =====================================================
+# 8. THÔNG TIN TRUY CẬP
+# =====================================================
+
+## URLs:
+- Ứng dụng chính: http://localhost
+- Swarm Visualizer: http://localhost:8080
+- Database: localhost:5432
+
+## Tài khoản mặc định:
+- Username: admin  
+- Password: admin123
+
+## Thông tin Database:
+- Host: database (internal) / localhost (external)
+- Port: 5432
+- Database: students_db
+- User: postgres
+- Password: SecurePassword123!
+
+## Cấu trúc replicas:
+- webapp: 2 replicas (có thể scale)
+- database: 1 replica (single master)
+- nginx: 1 replica (load balancer)
+- visualizer: 1 replica (monitoring)
+
+# =====================================================
+# 9. CÁC FILE QUAN TRỌNG
+# =====================================================
+
+- app.py: Flask application chính
+- docker-compose.yml: Development environment
+- docker-stack.yml: Production deployment với Swarm
+- Dockerfile: Build Flask app image
+- Dockerfile.db: Build PostgreSQL image  
+- Dockerfile.nginx: Build Nginx image
+- init-db.sql: Database initialization script
+- nginx.conf: Nginx configuration
+- .env: Environment variables (KHÔNG commit vào git)
+- requirements.txt: Python dependencies
+
+# =====================================================
+# 10. LƯU Ý AN TOÀN
+# =====================================================
+
+1. LUÔN thay đổi mật khẩu mặc định trước khi deploy production
+2. Sử dụng HTTPS cho production environment
+3. Backup database định kỳ
+4. Monitor logs và metrics
+5. Cập nhật Docker images thường xuyên
+6. Sử dụng Docker secrets cho production
+7. Cấu hình firewall cho production
+8. Không commit file .env vào version control
+
+# =====================================================
+# 11. CÁC BƯỚC ĐÃ THỰC HIỆN THÀNH CÔNG
+# =====================================================
+
+## Các lệnh đã test và chạy thành công:
+
+# 1. Load biến môi trường và build images:
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest -f Dockerfile .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest -f Dockerfile.db .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest -f Dockerfile.nginx .
+
+# 2. Đăng nhập và push lên Docker Hub:
+source .env && echo "$DOCKER_HUB_TOKEN" | sudo docker login --username "$DOCKER_HUB_USERNAME" --password-stdin
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest  
+source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest
+
+# 3. Kiểm tra images đã push:
+sudo docker images | grep csenguyenminhphuc
+
+# 4. Deploy với Docker Swarm:
+sudo docker stack deploy -c docker-stack.yml student-management
+
+## Images đã được push thành công lên Docker Hub:
+- csenguyenminhphuc/student-management-system-app:latest
+- csenguyenminhphuc/student-management-system-db:latest  
+- csenguyenminhphuc/student-management-system-nginx:latest
+
+## LƯU Ý QUAN TRỌNG:
+1. Phải chạy "source .env" trước mỗi lệnh để load biến môi trường
+2. Sử dụng docker-stack-fixed.yml thay vì docker-stack.yml để tránh lỗi biến môi trường
+3. File .env đã được cấu hình với thông tin thật của Docker Hub
+
+# =====================================================
+# END OF GUIDE
+# Phát triển bởi: Nguyễn Minh Phúc  
+# DevSecOps Student - Computer Science K4
+# =====================================================
+
+sudo docker service ls
+
+# =====================================================
+# 12. TRẠNG THÁI HỆ THỐNG HIỆN Tại (25/09/2025)
+# =====================================================
+
+## Trạng thái services sau khi tăng replicas:
+- database: 2/2 replicas ✅ RUNNING
+- nginx: 2/2 replicas ✅ RUNNING (Load balancer hoạt động)
+- visualizer: 1/1 replicas ✅ RUNNING  
+- webapp: 0/2 replicas ❌ FAILED (Database connection issue)
+
+## KẾT QUẢ CUỐI CÙNG:
+✅ THÀNH CÔNG tăng replicas cho database và nginx lên 2
+✅ Nginx load balancer hoạt động và listen trên port 80
+✅ Database cluster với 2 replicas đang chạy ổn định
+⚠️  Webapp cần troubleshoot thêm (có thể do database connection timeout)
+
+## Vấn đề webapp:
+- Health check endpoint /health không tồn tại trong Flask app
+- Container khởi động thành công nhưng bị terminate do health check fail
+
+## Giải pháp đã áp dụng:
+1. Nginx được cấu hình để handle webapp không available
+2. Database và nginx đã scale thành công lên 2 replicas
+3. Hệ thống có thể truy cập qua nginx load balancer
+
+## Lệnh quản lý replicas:
+# Tăng replicas cho database và nginx
+sudo docker service scale student-management_database=2
+sudo docker service scale student-management_nginx=2
+
+# Kiểm tra trạng thái
+sudo docker service ls
+sudo docker stack services student-management
+
+
+sudo docker stack deploy -c docker-stack.yml student-management
+sudo docker stack rm student-management
+cd /home/ubuntu/Project && source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest
+cd /home/ubuntu/Project && source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest
+cd /home/ubuntu/Project && source .env && sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest
+
+cd /home/ubuntu/Project && source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest -f Dockerfile.nginx .
+
+cd /home/ubuntu/Project && source .env sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:$VERSION
+cd /home/ubuntu/Project && source .env sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:$VERSION
+cd /home/ubuntu/Project && source .env sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:$VERSION
+
+
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-app:latest -f Dockerfile .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-db:latest -f Dockerfile.db .
+source .env && sudo docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME-nginx:latest -f Dockerfile.nginx .
+
+sudo docker stack services student-management

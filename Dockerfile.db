@@ -1,0 +1,17 @@
+# PostgreSQL Dockerfile for custom configuration
+FROM postgres:15-alpine
+
+# Set environment variables
+ENV POSTGRES_DB=students_db
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=password
+
+# Copy initialization scripts
+COPY init-db.sql /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Health check for PostgreSQL
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD pg_isready -U $POSTGRES_USER -d $POSTGRES_DB || exit 1
